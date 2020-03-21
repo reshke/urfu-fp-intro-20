@@ -370,7 +370,8 @@ showDate day month year =
   - uncons [1,2,3] ~> (Just 1, [2, 3])
 -}
 uncons :: [a] -> (Maybe a, [a])
-uncons l = error "not implemented"
+uncons []       = (Nothing, [])
+uncons (x : xs) = (Just x, xs)
 
 {-
   zipMaybe возвращает пару значений, если оба значения не Nothing:
@@ -380,7 +381,9 @@ uncons l = error "not implemented"
   - zipMaybe (Just "hey") (Just 2) ~> Just ("hey", 2)
 -}
 zipMaybe :: Maybe a -> Maybe b -> Maybe (a, b)
-zipMaybe a b = error "not implemented"
+zipMaybe _ Nothing = Nothing
+zipMaybe Nothing _ = Nothing
+zipMaybe (Just a) (Just b) = Just(a, b)
 
 -- </Задачи для самостоятельного решения>
 
@@ -415,7 +418,15 @@ zipMaybe a b = error "not implemented"
       - сообщать "Can't adopt lions :("
 -}
 adopt :: AnimalWithType -> Either String AdoptedAnimal
-adopt = error "not implemented"
+adopt cat@(AnimalWithType age name Cat) = if age < 5 && (head name) /= 'D' 
+                                            then Right (AdoptedAnimal cat) 
+                                            else Left "Can't adopt cat"
+adopt lion@(AnimalWithType _ _ Lion) = Left "Can't adopt lions :("
+adopt dog@(AnimalWithType age _ Dog) = if age > 1 
+                                        then Right (AdoptedAnimal dog) 
+                                        else Left "Can't adopt dog"
+adopt duck@(AnimalWithType _  "Daisy" Duck) = Right (AdoptedAnimal duck)
+adopt duck@(AnimalWithType _  _ Duck)       = Left "Quack" 
 
 -- </Задачи для самостоятельного решения>
 
@@ -494,8 +505,8 @@ adopt = error "not implemented"
   и вспомогательные функции. Тесты написаны так, что вспомогательные функции
   зависят друг друга. 
 -}
-data Tree a
-  {-
+data Tree a = Empty | Node (a) (Tree a) (Tree a)
+  {-i
     Определите конструкторы для бинарного дерева:
       - лист
       - узел с значением и левой и правой ветками
@@ -504,27 +515,30 @@ data Tree a
 
 -- Возвращает пустое дерево
 empty :: Tree a
-empty = error "not implemented"
+empty = Empty
 
 -- Возвращает True, если дерево - это лист
 isLeaf :: Tree a -> Bool
-isLeaf t = error "not implemented"
-
+isLeaf Empty = True 
+isLeaf _     = False
 -- Возвращает True, если дерево - не лист
 isNode :: Tree a -> Bool
 isNode = not . isLeaf
 
 -- Если дерево это нода, то возвращает текущее значение ноды
 getValue :: Tree a -> Maybe a
-getValue t = error "not implemented"
+getValue Empty            = Nothing
+getValue (Node (a) (_) (_)) = Just a 
 
 -- Если дерево это нода, то возвращает левое поддерево
 getLeft :: Tree a -> Maybe (Tree a)
-getLeft t = error "not implemented"
+getLeft Empty        = Nothing
+getLeft (Node _ l _) = Just l
 
 -- Если дерево это нода, то возвращает правое поддерево
 getRight :: Tree a -> Maybe (Tree a)
-getRight t = error "not implemented"
+getRight Empty        = Nothing
+getRight (Node _ _ r) = Just r
 
 {-
   Вставка значения в дерево:
@@ -541,7 +555,11 @@ getRight t = error "not implemented"
    три значения: GT, EQ, LT. Попробуйте поиграться в repl.
 -} 
 insert :: Ord a => a -> Tree a -> Tree a
-insert v t = error "not implemented"
+insert v Empty = Node v Empty Empty 
+insert v (Node val left right) = case compare v val of 
+                                      EQ {- assume multikey tree is ok (?)-} -> (Node val (insert v left) right)
+                                      LT                                     -> (Node val (insert v left) right)
+                                      _ {- GT -}                             -> (Node val left (insert v right))
 
 {-
   Проверка наличия значения в дереве:
@@ -553,6 +571,10 @@ insert v t = error "not implemented"
     - isElem 4 $ insert 1 $ insert 3 $ insert 2 empty ~> False
 -}
 isElem :: Ord a => a -> Tree a -> Bool
-isElem v tree = error "not implemented"
+isElem _ Empty = False
+isElem val (Node v l r) = case compare v val of 
+                               EQ -> True
+                               LT -> isElem val r
+                               GT -> isElem val l
 
 -- </Задачи для самостоятельного решения>
