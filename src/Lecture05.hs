@@ -43,11 +43,12 @@ module Lecture05 where
     https://en.wikipedia.org/wiki/Sieve_of_Eratosthenes#/media/File:Sieve_of_Eratosthenes_animation.gif
 -}
 sieve :: [Integer] -> [Integer]
-sieve xs = error "not implemented"
+sieve []       = []
+sieve (x : xs) = x : sieve [ y | y <- xs, mod y x /= 0 ]
 
 -- Функция, возвращающая n-ое простое число. Для её реализации используйте функцию sieve
 nthPrime :: Int -> Integer
-nthPrime n = error "not implemented"
+nthPrime n = last (take n (sieve [2..]))
 
 {-
     Недавно в интервью Forbes с Сергеем Гуриевым Андрей Мовчан решил показать, что он
@@ -71,7 +72,7 @@ nthPrime n = error "not implemented"
 -- Возвращает бесконечный список ВВП на годы и годы вперёд
 -- yearGDP 100 0.1 ~> [100, 100.1, 100.20009(9), 100.3003.., ...]
 yearGDP :: Double -> Double -> [Double]
-yearGDP now percent = error "not implemented"
+yearGDP now percent = now : yearGDP (now * (1 + percent / 100)) percent
 
 -- Возвращает количество лет, которые нужны Китаю, чтобы догнать США в текущих условиях
 inHowManyYearsChinaWins :: Int
@@ -103,6 +104,18 @@ allCountries =
   , Country "GreatBritain" 0 ]
 
 stat :: [Country] -> [Country]
-stat events = error "not implemented"
+stat []     = allCountries
+stat events = [ Country "China" china
+  , Country "Russia" rus
+  , Country "Italy" italy
+  , Country "USA" usa
+  , Country "GreatBritain" gb ] where 
+                                china = sum $ map(\y@(Country name c) -> if name == "China" then c else 0) events
+                                rus   = sum $ map(\y@(Country name c) -> if name == "Russia" then c else 0) events
+                                italy = sum $ map(\y@(Country name c) -> if name == "Italy" then c else 0) events
+                                usa   = sum $ map(\y@(Country name c) -> if name == "USA" then c else 0) events 
+                                gb    = sum $ map(\y@(Country name c) -> if name == "GreatBritain" then c else 0) events
 
+--map(\y@(Country country_name _) -> (Country country_name (sum $ map (\other@(Country name count) -> if name == country_name then count else 0) events ))) allCountries
+ 
 -- </Задачи для самостоятельного решения>
