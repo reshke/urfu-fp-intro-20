@@ -76,7 +76,7 @@ yearGDP now percent = now : yearGDP (now * (1 + percent / 100)) percent
 
 -- Возвращает количество лет, которые нужны Китаю, чтобы догнать США в текущих условиях
 inHowManyYearsChinaWins :: Int
-inHowManyYearsChinaWins = error "not implemented"
+inHowManyYearsChinaWins = 1 + length (takeWhile(\x -> x == True)( zipWith (\x y -> x < y) (yearGDP 10000 6) (yearGDP 66000 2)))
 
 {-
   Пусть у нас есть некоторая лента событий, каждое сообщение в которой говорит,
@@ -104,17 +104,10 @@ allCountries =
   , Country "GreatBritain" 0 ]
 
 stat :: [Country] -> [Country]
-stat []     = allCountries
-stat events = [ Country "China" china
-  , Country "Russia" rus
-  , Country "Italy" italy
-  , Country "USA" usa
-  , Country "GreatBritain" gb ] where 
-                                china = sum $ map(\y@(Country name c) -> if name == "China" then c else 0) events
-                                rus   = sum $ map(\y@(Country name c) -> if name == "Russia" then c else 0) events
-                                italy = sum $ map(\y@(Country name c) -> if name == "Italy" then c else 0) events
-                                usa   = sum $ map(\y@(Country name c) -> if name == "USA" then c else 0) events 
-                                gb    = sum $ map(\y@(Country name c) -> if name == "GreatBritain" then c else 0) events
+stat events = [ 
+        Country country_name (count_f  country_name) | c@(Country country_name _) <- allCountries ] 
+                 where 
+                      count_f = \x -> sum $ map(\y@(Country name c) -> if name == x then c else 0) events
 
 --map(\y@(Country country_name _) -> (Country country_name (sum $ map (\other@(Country name count) -> if name == country_name then count else 0) events ))) allCountries
  
