@@ -129,7 +129,11 @@ module Lecture06 where
   Если да, то приведите пример Γ и T и постройте дерево вывода Γ ⊢ x x : T;
   если нет, то докажите это (напишите, почему)
 
-  *Решение*
+  x x - это апликация x к самому себе, следовательно имеет тип X -> T для некоторого T. X принимает X как аргумент => X = X -> T.
+  Делаем так бесконечное количество раз,получаем соотношение
+  X -> T =((X -> T) ...  -> T) -> T
+  Следовательно тип вывести невозможно
+
 -}
 -- </Задачи для самостоятельного решения>
 
@@ -325,8 +329,12 @@ module Lecture06 where
 {-
   Убедитесь, что selfApp работает. Приведите терм `selfApp id` в нормальную форму
   и запишите все шаги β-редукции ->β.
+  
+  id = λx:∀X.X->X.x
+  selfApp = λx:∀X.X->X.x [∀X.X->X] x
 
-  selfApp id = ... ->β ...
+  selfApp id =  (λf:∀X.X->X.f [∀Y.Y->Y] f) id:∀Z.Z->Z -> β  (λf:(∀Y.Y->Y)->(∀Y.Y->Y).f f) id:∀Z.Z->Z -> β id id
+
 -}
 -- </Задачи для самостоятельного решения>
 
@@ -578,16 +586,17 @@ module Lecture06 where
 -}
 
 f :: [a] -> Int
-f = error "not implemented"
+f xs = 2 * (length xs) + 7
 
 g :: (a -> b)->[a]->[b]
-g = error "not implemented"
+g _ []     = []
+g f (x:xs) = f x : g f xs
 
 q :: a -> a -> a
-q x y = error "not implemented"
+q x y = y
 
 p :: (a -> b) -> (b -> c) -> (a -> c)
-p f g = error "not implemented"
+p f g = \x -> g (f x)
 
 {-
   Крестики-нолики Чёрча.
@@ -624,7 +633,10 @@ createRow x y z = \case
   Third -> z
 
 createField :: Row -> Row -> Row -> Field
-createField x y z = error "not implemented"
+createField x y z = \case
+  First -> x
+  Second -> y
+  Third -> z
 
 -- Чтобы было с чего начинать проверять ваши функции
 emptyField :: Field
@@ -633,17 +645,63 @@ emptyField = createField emptyLine emptyLine emptyLine
     emptyLine = createRow Empty Empty Empty
 
 setCellInRow :: Row -> Index -> Value -> Row
-setCellInRow r i v = error "not implemented"
+setCellInRow r i v = \indx -> if indx == i then v else r indx
 
 -- Возвращает новое игровое поле, если клетку можно занять.
 -- Возвращает ошибку, если место занято.
 setCell :: Field -> Index -> Index -> Value -> Either String Field
-setCell field i j v = error "not implemented"
+setCell field i j v = case (field i j) of 
+                                 Empty -> Right (\row -> if i /= row then field row else setCellInRow (field row) j v)
+                                 _ -> Left ("There is '"++ (show (field i j)) ++ "' on " ++ (show i) ++ " " ++ (show j))
+
 
 data GameState = InProgress | Draw | XsWon | OsWon deriving (Eq, Show)
+data Player    = CrossP | ZeroP deriving (Eq, Show)
+--data Line      = [(Index, Index)]
 
 getGameState :: Field -> GameState
-getGameState field = error "not implemented"
+getGameState field 
+    | xWinner            = XsWon
+    | oWinner            = OsWon
+    | hasEmpty           = InProgress
+    | otherwise          = Draw
+
+    where 
+        xWinner = isWinner CrossP
+        oWinner = isWinner ZeroP
+
+        inds = First : Second : Third : []
+        
+        isPwnedOk :: Player -> Value -> Bool
+        isPwnedOk ZeroP  Zero  = True
+        isPwnedOk CrossP Cross = True
+        isPwnedOk _      _     = False
+
+        allOk :: Player -> [(Index, Index)] -> (Player -> Value -> Bool) ->  Bool
+        allOk      _      []            _ = True
+        allOk player ((x, y) : xs) f = if f(player)(field x y) then allOk player xs f else False
+        
+        mainDiag = zip inds inds
+        sideDiag = zip inds (reverse inds)
+        rows     = [[(x, y) | x <- inds] | y <- inds]
+        columns  = [[(x, y) | y <- inds] | x <- inds]
+
+        hasEmptyInList :: [(Index, Index)] -> Bool
+        hasEmptyInList [] = False
+        hasEmptyInList ((x, y) : xs) = if (field x y) == Empty then True else hasEmptyInList xs
+
+        hasEmpty = hasEmptyInList (concat rows)
+
+        lines    = mainDiag : sideDiag : (rows ++ columns)
+        
+        linesMatcher :: [[(Index, Index)]] -> ([(Index, Index)] -> Bool) -> Bool
+        linesMatcher []       _ = False        
+        linesMatcher (x : xs) f = if f(x) then True else linesMatcher xs f
+
+        isWinner :: Player -> Bool
+        isWinner CrossP = linesMatcher lines (\l -> allOk CrossP l isPwnedOk)
+        isWinner ZeroP  = linesMatcher lines (\l -> allOk ZeroP  l isPwnedOk)
+ 
 
 -- </Задачи для самостоятельного решения>
 
@@ -653,4 +711,4 @@ getGameState field = error "not implemented"
 - Theorems for free! Philip Wadler http://ecee.colorado.edu/ecen5533/fall11/reading/free.pdf
 - Why Functional Programming Matters. John Hughes https://www.cs.kent.ac.uk/people/staff/dat/miranda/whyfp90.pdf
 - https://bartoszmilewski.com/2014/09/22/parametricity-money-for-nothing-and-theorems-for-free/
--}
+-}  
