@@ -65,15 +65,34 @@ data Expr
   | Abs Expr
   deriving Eq
 
+withBr :: Expr -> String
+withBr (Number n) = show n 
+withBr e          = "(" ++ (show e) ++ ")"
+
+instance Show Expr where 
+
+    show (Number num)   = show num
+    show (Plus e1 e2)   = (withBr e1) ++ " + " ++ (withBr e2)
+    show (Minus e1 e2)  = (withBr e1) ++ " - " ++ (withBr e2)
+    show (Mult e1 e2)   = (withBr e1) ++ " * " ++ (withBr e2)
+    show (UnaryMinus e) = "-" ++ "(" ++ (show e) ++ ")"
+    show (Abs e)        = "|" ++ (show e) ++ "|"
+
 {-
   Реализуйте instance Semigroup для вектора:
 -}
 newtype Vec a = Vec { unVec :: [a] } deriving (Eq, Show)
 
+instance Semigroup (Vec Integer) where
+    Vec x <> Vec y = Vec { unVec = zipWith (+) x y }
+
 {-
   Реализуйте instance Semigroup для типа для логгирования:
 -}
 newtype LogEntry = LogEntry { unLogEntry :: String } deriving (Eq, Show)
+
+instance Semigroup LogEntry where 
+    x <> y = LogEntry { unLogEntry = unLogEntry x <> unLogEntry y }
 
 {-
   В `src/Lecture07/Money.hs` определены:
@@ -83,21 +102,37 @@ newtype LogEntry = LogEntry { unLogEntry :: String } deriving (Eq, Show)
 
   Реализуйте инстансы Semigroup для Money a.
 -}
+instance Semigroup (Money RUB) where 
+    x <> y = mkRubbles $ (getMoney x) + (getMoney y)
+
+instance Semigroup (Money USD) where 
+    x <> y = mkDollars $ (getMoney x) + (getMoney y)
 
 {-
   Реализуйте инстанс Functor для ExactlyOne
 -}
 data ExactlyOne a = ExactlyOne a deriving (Eq, Show)
 
+instance Functor ExactlyOne where 
+    fmap f (ExactlyOne x) = ExactlyOne (f x)
+
 {-
   Реализуйте инстанс Functor для `Maybe a`
 -}
 data Maybe' a = Just' a | Nothing' deriving (Eq, Show)
 
+instance Functor Maybe' where 
+    fmap f (Just' x) = Just' (f x)
+    fmap _ _         = Nothing'
+
 {-
   Реализуйте инстанс Functor для `List a`
 -}
 data List a = Nil | Cons a (List a) deriving (Eq, Show)
+
+instance Functor List where 
+    fmap f (Cons x y) = Cons (f x) (fmap f y)
+    fmap _ _          = Nil
 
 {-
   `FileTree a` — тип для представления дерева файловой системы.
@@ -146,7 +181,9 @@ latestModified = getMax . foldMap (\FileInfo{..} -> Max modified)
 -}
 
 instance Foldable FileTree where
-  foldMap = undefined
+    foldMap f (Dir  _ subtree)  = mconcat (map (foldMap f) subtree)
+    foldMap f (File _ fileinfo) = f fileinfo
+    foldMap _ _                 = mempty
 
 {-
   В этом задании вам необходимо придумать и написать иерархию исключений
