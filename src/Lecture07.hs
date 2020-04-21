@@ -1,6 +1,7 @@
 {-# OPTIONS_GHC -fno-warn-orphans -fno-warn-unused-imports #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
 module Lecture07 where
 
 import Lecture07.Money
@@ -200,5 +201,25 @@ instance Foldable FileTree where
 
   Реализовывать инстансы не нужно.
 -}
+
+data Severity = Debug | Info | Error | Warn deriving (Eq, Show)
+
+data Json = JsonDict [(String, Json)] | JsonNum Integer | JsonStr String | JsonNull | JsonBool Bool
+
+class Exception ex where
+    message :: ex -> String
+
+
+class APIException ex where
+    json     :: ex -> Json
+    severity :: ex -> Severity
+
+
+class DBException ex where
+    dbError :: ex -> String
+
+
+class DomainException ex cntx where
+    context :: ex -> cntx
 
 -- </Задачи для самостоятельного решения>
