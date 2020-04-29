@@ -41,18 +41,20 @@ import qualified Data.IntMap as Map
 data Stack a = Stack [a] deriving (Eq, Show)
 
 createStack :: Stack a
-createStack = error "not implemented"
+createStack = Stack[]
 
 -- Обратите внимание, что все структуры данных неизменяемые (immutable). Значит, если операция
 -- предполагает изменение структуры, то она просто должна возвращать новую уже изменённую версию.
 push :: Stack a -> a -> Stack a
-push stack x = error "not implemented"
+push (Stack xs) x = Stack(x : xs)
 
 pop :: Stack a -> Maybe (Stack a)
-pop stack = error "not implemented"
+pop (Stack [])     = Nothing
+pop (Stack (x : xs)) = Just (Stack xs)
 
 peek :: Stack a -> Maybe a
-peek stack = error "not implemented"
+peek (Stack [])   = Nothing
+peek (Stack (x : xs) ) = Just x 
 
 -- </Задачи для самостоятельного решения>
 
@@ -170,17 +172,20 @@ dequeue' (q:qs) = (q, qs)             -- возвращаем (элемент, �
 data Queue a = Queue [a] [a] deriving (Eq, Show)
 
 createQueue :: Queue a
-createQueue = error "not implemented"
+createQueue = Queue [] []
 
 enqueue :: Queue a -> a -> Queue a
-enqueue queue x = error "not implemented"
+enqueue (Queue xs ys) x =  Queue (x:xs) ys
 
 -- если очередь пустая возвращает ошибку
 dequeue :: Queue a -> (a, Queue a)
-dequeue queue = error "not implemented"
+dequeue (Queue [] [])     = error "Empty"
+dequeue (Queue xs [])     = dequeue (Queue [] (reverse xs)) 
+dequeue (Queue xs (y:ys)) = (y, Queue xs ys)
 
 isEmpty :: Queue a -> Bool
-isEmpty queue = error "not implemented"
+isEmpty (Queue [] []) = True
+isEmpty _             = False 
 
 -- </Задачи для самостоятельного решения>
 
@@ -385,7 +390,17 @@ class IntArray a where
 
 -- Сортирует массив целых неотрицательных чисел по возрастанию
 countingSort :: forall a. IntArray a => [Int] -> [Int]
-countingSort = error "not implemented"
+countingSort [] = []
+countingSort l = concat [ replicate' x] 
+                            where 
+                                x :: a
+                                x = setup' l
+
+
+-- Сортирует массив целых неотрицательных чисел по возрастанию
+--countingSort :: forall a. IntArray a => [Int] -> [Int]
+--countingSort [] = []
+--countingSort l = concat (map (uncurry $ flip replicate) (accum' (setup' l) l))
 
 {-
   Tак можно запустить функцию сортировки с использованием конкретной реализацией массива:
@@ -398,7 +413,7 @@ countingSort = error "not implemented"
 -}
 
 sorted :: [Int]
-sorted = countingSort @[Int] [2,2,2,3,3,3,1,1,1]
+sorted = countingSort @(Array Int Int) [2,2,2,3,3,3,1,1,1]
 
 -- </Задачи для самостоятельного решения>
 
