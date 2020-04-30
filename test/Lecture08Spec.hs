@@ -6,6 +6,7 @@ import Test.Hspec
 
 import Lecture08
 import Data.Array
+import qualified Data.IntMap as Map
 
 emptyStack :: Stack Int
 emptyStack = createStack
@@ -69,3 +70,5 @@ spec = do
       countingSort @(Array Int Int) (reverse [1..10]) `shouldBe` [1..10]
     it "countingSort [6,5,6,0,1,6,7,2] ~> [0,1,2,5,6,6,6,7]" $
       countingSort @(Array Int Int) [6,5,6,0,1,6,7,2] `shouldBe` [0,1,2,5,6,6,6,7]
+    it "countingSort @(Map.IntMap Int) [2,2,2,3,3,3,1,1,1] ~> [1,1,1,2,2,2,3,3,3]" $
+      countingSort @(Map.IntMap Int) [2,2,2,3,3,3,1,1,1] `shouldBe` [1,1,1,2,2,2,3,3,3]

@@ -381,26 +381,44 @@ emptySet = Set.intersection evenSet oddSet
   https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html?highlight=ambiguous#extension-AllowAmbiguousTypes
 -}
 
--- Названия методов можно менять
 class IntArray a where
-  fromList :: [(Int, Int)] -> a    -- создать из списка пар [(index, value)]
+  fromList :: [Int] -> a    -- создать из списка пар [(index, value)]
   toList :: a -> [(Int, Int)]      -- преобразовать в список пар [(index, value)]
   update :: a -> Int -> Int -> a   -- обновить элемент по индексу
-  (#) :: a -> Int -> Int           -- получить элемент по индексу
+  (#) :: a -> Int -> Int           -- получить элемент по индексу   
+
+
+instance IntArray [Int] where
+    (#) l i        = l !! i
+    update l i val = (take i l) ++ (val : (drop (i + 1) l))  
+    fromList l     = replicate (1 + (maximum l)) 0
+    toList l       = zip [0,1..] l
+
+
+instance IntArray (Array Int Int) where
+    (#) arr ind        = arr ! ind
+    update arr ind val = arr // [(ind, val)]
+    fromList l         = array (0, n) (zip [0,1..n] (repeat 0)) where n = maximum l
+    toList arr         = assocs arr 
+
+instance IntArray (Map.IntMap Int) where
+    update xs i x = Map.insert i x xs
+    (#) xs i      = xs Map.! i
+    fromList l    = Map.fromList [(i, 0) | i <- l]
+    toList   l    = Map.toList l
 
 -- Сортирует массив целых неотрицательных чисел по возрастанию
 countingSort :: forall a. IntArray a => [Int] -> [Int]
 countingSort [] = []
-countingSort l = concat [ replicate' x] 
-                            where 
-                                x :: a
-                                x = setup' l
-
+countingSort l = concat [ replicate n x | (x, n) <- toList . fill (fromList l) $ l ] 
+                            where
+                                inc :: a -> Int -> a
+                                inc x i = update x i (((#) x i) + 1)
+                                fill :: a -> [Int] -> a
+                                fill x [] = x
+                                fill x (y : ys) = fill (inc x y) ys
 
 -- Сортирует массив целых неотрицательных чисел по возрастанию
---countingSort :: forall a. IntArray a => [Int] -> [Int]
---countingSort [] = []
---countingSort l = concat (map (uncurry $ flip replicate) (accum' (setup' l) l))
 
 {-
   Tак можно запустить функцию сортировки с использованием конкретной реализацией массива:
@@ -412,8 +430,8 @@ countingSort l = concat [ replicate' x]
   [1,1,1,2,2,2,3,3,3]
 -}
 
-sorted :: [Int]
-sorted = countingSort @(Array Int Int) [2,2,2,3,3,3,1,1,1]
+--sorted :: [Int]
+--sorted = countingSort @(Array Int Int) [2,2,2,3,3,3,1,1,1]
 
 -- </Задачи для самостоятельного решения>
 
