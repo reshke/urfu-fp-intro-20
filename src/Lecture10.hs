@@ -6,7 +6,7 @@ module Lecture10 where
 import Control.Monad.Writer
 import Control.Monad.Reader
 import Control.Monad.State
-import Data.List
+import Data.List(intercalate)
 
 {-
   10: Остальные монады
@@ -100,15 +100,19 @@ sqrtListComprehensions list = [ x^2 | x <- list ]
 
 -- "Наивная" версия с использованием map'ов
 cartesianProduct :: [a] -> [b] -> [(a,b)]
-cartesianProduct xs ys = error "not implemented"
+cartesianProduct xs [] = []
+cartesianProduct [] ys = []
+cartesianProduct (x:xs) ys = map (\y -> (x, y)) ys ++ cartesianProduct xs ys
 
 -- По аналогии с функцией sqrtList перепишите cartesianProduct с использованием return и (=<<)
 cartesianProductMonad :: [a] -> [b] -> [(a,b)]
-cartesianProductMonad xs ys = error "not implemented"
+cartesianProductMonad xs ys = (\x -> (\y -> return $ (x, y)) =<< ys) =<< xs 
 
 -- А теперь с использованием do notation
 cartesianProductDoNotation :: [a] -> [b] -> [(a,b)]
-cartesianProductDoNotation xs ys = error "not implemented"
+cartesianProductDoNotation xs ys = do x <- xs
+                                      y <- ys
+                                      return (x, y) 
 
 -- </Задачи для самостоятельного решения>
 
@@ -247,8 +251,16 @@ data Optional a = Some a | None deriving (Eq, Show, Functor)
 -}
 
 instance Applicative Optional where
+    (<*>) :: Optional (x -> y) -> Optional x -> Optional y
+    (<*>) (Some f) (Some x) = Some $ f x 
+    (<*>) _        _        = None    
+    
+    pure x = Some x
 
 instance Monad Optional where
+    (>>=) :: Optional x -> (x -> Optional y) -> Optional y
+    (>>=) (Some x) f = f x
+    (>>=) None     _ = None
 
 {-
   Реализуйте instance класса Monad для List
@@ -269,6 +281,10 @@ append Nil ys = ys
 append ((:.) x xs) ys = (:.) x (append xs ys)
 
 instance Applicative List where
+    (f:.fs) <*> xs = append (f <$> xs) (fs <*> xs)
+    _ <*> _ = Nil
+    
+    pure x = x :. Nil
 
 -- понадобится для >>=
 concat' :: List (List a) -> List a
@@ -276,6 +292,7 @@ concat' Nil = Nil
 concat' ((:.) x xs) = append x (concat' xs)
 
 instance Monad List where
+    xs >>= f =  concat' . fmap f $ xs    
 
 -- </Задачи для самостоятельного решения>
 

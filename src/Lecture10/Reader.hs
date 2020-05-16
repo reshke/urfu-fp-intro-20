@@ -62,18 +62,49 @@ persons =
 
 -- Поиск персоны по номеру
 findById :: PersonId -> Reader [Person] (Maybe Person)
-findById pId = error "not implemented"
+findById pId = do
+                ps <- ask
+                return $ find (\(Person id _ _ _ _ _) -> id == pId) ps 
 
 processSingle :: Person -> String
-processSingle p = error "not implemented"
+processSingle (Person _ _ name surname sex _) = 
+        case sex of
+            Female -> "Уважаемая " ++ name ++ " " ++ surname ++ "!" ++ "\n" ++ "Разрешите предложить Вам наши услуги."
+            Male -> "Уважаемый " ++ name ++ " " ++ surname ++ "!" ++ "\n" ++ "Разрешите предложить Вам наши услуги."
+
 
 processPair :: Person -> Person -> String
-processPair husband wife = error "not implemented"
+processPair (Person humanId _ huName huSurname _ (Just mwId)) 
+            (Person womanId _ woName woSurname _ (Just mhId)) = 
+            if womanId == mwId && humanId == mhId then
+                 "Уважаемые "++ huName ++ " " ++ huSurname ++ " и " ++ woName ++ " " ++ woSurname ++ "!" ++ "\n" ++ "Разрешите предложить вам наши услуги." 
+            else
+                 "no such pair"
+
+processPair _ _ = "no such pair"
 
 processPerson :: PersonId -> Reader [Person] (Maybe String)
-processPerson pId = error "not implemented"
+processPerson pId = do
+            p <- findById pId
+            res <- case p of
+                Just hu@(Person _ _ _ _ Male (Just id)) -> do 
+                                            pairPerson <- findById id
+                                            return $ case pairPerson of 
+                                                Just wo@(Person _ _ _ _ Female _) -> return $ processPair hu wo
+                                                _ -> return $ processSingle hu
+                Just wo@(Person _ _ _ _ Female (Just id)) -> do 
+                                            pairPerson <- findById id
+                                            return $ case pairPerson of 
+                                                Just hu@(Person _ _ _ _ Male _) -> return $ processPair wo hu
+                                                _ -> return $ processSingle wo
+                Just per -> return $ Just $ processSingle per
+                _ -> return $ Nothing
+
+            return $ res
 
 processPersons :: [PersonId] -> [Maybe String]
-processPersons personIds = error "not implemented"
+processPersons pIds = do
+              pId <- pIds
+              return $ runReader (processPerson pId) persons
 
 -- </Задачи для самостоятельного решения>
