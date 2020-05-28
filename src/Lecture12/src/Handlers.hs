@@ -13,6 +13,7 @@ import DB.Seat
 import DB.Preliminary
 import DB.Booking
 import Utils
+import API.Types
 
 getSessions :: MonadIO m => AppT m [MovieSession]
 getSessions = getMovieSessions
@@ -26,3 +27,27 @@ postPreliminary msId seatId = do
   case bookings of
     (b:_) -> pure $ bookingId b
     _ -> throwJSONError err404 $ JSONError "booking is not found"
+
+
+refund :: MonadIO m => BookingId -> AppT m ()
+refund bId = do
+    booking <- getBook bId
+    case booking of
+        Booking _ sId _ _ _ : _ -> do
+            res <- rmBooking sId bId
+            return $ res
+        _ -> throwJSONError err404 $ JSONError "booking is not found"
+
+checkout :: MonadIO m => BookingId -> AppT m PaymentResponse
+checkout bId = do
+    booking <- tryBook bId
+    case booking of
+        Just f@(BookingFail Expired) -> do
+            _ <- rmBookingOnly bId
+            return f
+        Just f@(BookingFail _) -> return f
+        Just s@(BookingOk _ _ sId) -> do    
+            _ <- checkoutBooking sId bId
+            return s
+        _ -> throwJSONError err404 $ JSONError "booking is not found"
+

@@ -11,8 +11,12 @@ import Servant.API
 import GHC.Generics
 
 import DB.MovieSession
-import DB.Seat
+import DB.Seat (SeatId)
 import DB.Internal
+import API.Types 
+
+import Control.Monad.IO.Class
+
 
 {-
   Тип для идентификатора бронирования
@@ -34,8 +38,8 @@ newtype BookingId = BookingId
 data Booking = Booking
   { bookingId :: BookingId
   , seatId :: SeatId
-  , isPreliminary :: Bool
   , movieSessionId :: MovieSessionId
+  , isPreliminary :: Bool
   , createdAt :: UTCTime
   } deriving (Eq, Show, Generic)
 -- Класс Generic отвечает за универсальное кодирование типа, т.е. за  такое представление,
@@ -56,8 +60,36 @@ instance FromJSON Booking
   Если оно существует и прошло меньше 10 минут от создания, то бронирование
   проходит успешно, иначе необходимо вернуть сообщение об ошибке в JSON формате.
 -}
-tryBook
+getBook
   :: DBMonad m
   => BookingId
-  -> m Bool
-tryBook = undefined
+  -> m [Booking]
+getBook bookingId = runSQL $ \conn ->
+  query conn "SELECT * from bookings where id = ? " bookingId
+
+checkoutBooking :: DBMonad m => SeatId -> BookingId -> m ()
+checkoutBooking sId bId = runSQL $ \conn -> do
+    _ <- execute conn "UPDATE seats SET available = false WHERE id = ?" sId
+    _ <- execute conn "UPDATE bookings SET is_preliminary = false WHERE id = ?" bId
+    return $ ()
+
+rmBookingOnly :: DBMonad m =>BookingId -> m ()
+rmBookingOnly bId = runSQL $ \conn -> do 
+    _ <- execute conn "DELETE FROM bookings WHERE id = ?" bId
+    return $ ()
+
+rmBooking :: DBMonad m => SeatId -> BookingId -> m ()
+rmBooking sId bId = runSQL $ \conn -> do 
+    _ <- execute conn "UPDATE seats SET available = true WHERE id = ?" sId
+    _ <- execute conn "DELETE FROM bookings WHERE id = ?" bId
+    return $ ()
+
+tryBook :: DBMonad m => BookingId -> m (Maybe PaymentResponse)
+tryBook bookingId = do
+    booking <- getBook bookingId
+    case booking of
+        (Booking _ seat movie isPreliminary created : _) -> do
+            cTime <- liftIO $  getCurrentTime
+            return $ Just $ if addUTCTime 600 created < cTime then BookingFail { result = Expired }
+                                else if isPreliminary then toRes movie seat else BookingFail { result = AlreadyPaid }
+        _ -> return Nothing
